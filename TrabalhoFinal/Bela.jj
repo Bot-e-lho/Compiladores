@@ -1,0 +1,182 @@
+PARSER_BEGIN(Bela)
+import java.io.*;
+import ast.*;
+
+
+
+public class Bela {
+
+  public static void main(String args[]) throws ParseException, IOException {
+    Bela analisador = new Bela(new FileInputStream(args[0]));
+    analisador.Bela();
+    }
+
+}
+PARSER_END(Bela)
+
+SKIP:
+{
+  " " | "\t" | "\n" | "\r"
+}
+
+
+TOKEN:
+{
+    < MAIN:     "main" >
+    | < LPAR:     "(" >
+    | < RPAR:     ")" >
+    | < LCHAVES:  "{" >
+    | < RCHAVES:  "}" >
+    | < VAR:      "var" >
+    | < FLOAT:    "float" >
+    | < BOOL:     "bool" >
+    | < VOID:     "void" >
+    | < PVIRG: ";" >
+    | < ATRIB:    "=" >
+    | < IF:       "if" >
+    | < THEN:     "then" >
+    | < WHILE:    "while" >
+    | < READINPUT:"readInput" >
+    | < RETURN:   "return" >
+    | < PRINT:    "printLn" >
+    | < TRUE:     "true" >
+    | < FALSE:    "false" >
+    | < SUM:      "+" >
+    | < SUB:      "-" >
+    | < MULT:     "*" >
+    | < DIV:      "/" >
+    | < AND:      "&&" >
+    | < OR:       "||" >
+    | < LESS:     "<" >
+    | < GREATER:  ">" >
+    | < COMP:     "==" >
+    | < VIRG:  "," >
+    | < FUN:      "fun" >
+}
+
+TOKEN :
+{
+   < ID: ( ["a"-"z","A"-"Z"] ) ( ["a"-"z","A"-"Z","0"-"9"] )* ( "_" ( ["a"-"z","A"-"Z","0"-"9"] )+ )*>
+   | <NUM : (["0"-"9"])+ ( "." (["0"-"9"])+ )? ( "E" ( "+" | "-" )? (["0"-"9"])+ )? >
+
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void Bela() : {} {
+  Main()
+  Func_Linha()
+  <EOF>
+}
+
+
+void Main() : {} {
+  <MAIN> <LPAR> <RPAR> <LCHAVES> 
+   
+VarDeclSeq()
+SeqCmd()
+
+<RCHAVES>
+
+}
+
+void VarDeclSeq() : {} {
+  ( <VAR> Tipo() <ID> <PVIRG> )*
+}
+
+
+void Tipo() : {} {
+( <FLOAT> | <BOOL> | <VOID> )
+}
+
+void SeqCmd() : {} {// SEQCOMANDOS -> SEQCOMANDOS COMANDO | vazio -> tem o loop no inicio
+
+   SeqComandos_linha()// eliminando
+}
+
+void SeqComandos_linha() : {} {
+
+   ( Comando() )*
+
+}
+
+void Comando() : {}
+{
+  (
+      <ID> ( 
+        <ATRIB> (
+          <READINPUT> <LPAR> <RPAR> <PVIRG>
+          | Exp() <PVIRG>
+        )
+      | 
+        <LPAR> [ ExpList() ] <RPAR> <PVIRG>
+      )
+    | <IF> Exp() <THEN> <LCHAVES> SeqCmd() <RCHAVES> <PVIRG>
+    | <WHILE> Exp() <LCHAVES> SeqCmd() <RCHAVES> <PVIRG>
+    | <RETURN> Exp() <PVIRG>
+    | <PRINT> Exp() <PVIRG>
+  )
+}
+
+
+void Exp() : {} {
+  ( <LPAR> Exp() Op() Exp() <RPAR>
+  | Fator()
+  )
+}
+
+
+void Fator() : {} {
+  (
+      <ID> [ <LPAR> [ExpList()] <RPAR> ]
+    | <NUM>
+    | <TRUE>
+    | <FALSE>
+  )
+}
+
+
+void Op() : {} {
+  (
+      <SUM>
+    | <SUB>
+    | <MULT>
+    | <DIV>
+    | <AND>
+    | <OR>
+    | <LESS>
+    | <GREATER>
+    | <COMP>
+  )
+}
+
+
+// LISTAEXP -> EXP | LISTAEXP "," EXP
+
+void ExpList() : {} { // * elimina, transforma em uma sequencia iterativa
+  Exp() ( <VIRG> Exp() )*
+}
+
+
+//FUNC -> FUNC "fun" TIPO TOKEN_id "(" LISTAARG? ")" "{" VARDECL SEQCOMANDOS "}"
+//"fun" TIPO TOKEN_id "(" LISTAARG? ")" "{" VARDECL SEQCOMANDOS "}"
+
+void Func() : {} { // recursão no inicio
+  
+    <FUN> Tipo() <ID> <LPAR> [ ListaArg() ] <RPAR> <LCHAVES>
+      VarDeclSeq()
+      SeqCmd()
+    <RCHAVES>
+  
+}
+
+void Func_Linha() : {} {
+  (Func())*
+
+}
+
+// LISTAARG -> TIPO TOKEN_id | LISTAARG "," TIPO TOKEN_id
+
+void ListaArg() : {} {
+  Tipo() <ID> ( <VIRG> Tipo() <ID> )*
+} // mesmo do ExpList
