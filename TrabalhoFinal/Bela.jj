@@ -1,5 +1,6 @@
 PARSER_BEGIN(Bela)
 import java.io.*;
+import java.util.*;
 import ast.*;
 
 
@@ -7,11 +8,40 @@ import ast.*;
 public class Bela {
 
   public static void main(String args[]) throws ParseException, IOException {
-    Bela analisador = new Bela(new FileInputStream(args[0]));
-    analisador.Bela();
+        if (args.length == 0) {
+            System.err.println("Uso: java Bela <arquivo.bela>");
+            return;
+        }
+        Bela analisador = new Bela(new FileInputStream(args[0]));
+        Prog prog = analisador.Bela();
+        geraCodigo(prog, args[0]);
     }
 
+    public static String mapType(String t) {
+        switch(t) {
+            case "float": return "float";
+            case "bool":  return "boolean";
+            case "void":  return "void";
+            default:      return t;
+        }
+    }
+
+    public static void geraCodigo(Prog prog, String arquivo) {
+        String base = new File(arquivo).getName();
+        String name = base.contains(".") ? base.substring(0, base.lastIndexOf('.')) : base;
+        String outFile = name + ".java";
+        try (PrintWriter out = new PrintWriter(new FileWriter(outFile))) {
+            out.println("import java.util.*;");
+            out.println();
+            out.println("public class " + name + " {");
+            prog.generateCode(out);
+            out.println("}");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
+
 PARSER_END(Bela)
 
 SKIP:
@@ -63,120 +93,192 @@ TOKEN :
 
 ////////////////////////////////////////////////////////////////////////
 
-void Bela() : {} {
-  Main()
-  Func_Linha()
-  <EOF>
-}
-
-
-void Main() : {} {
-  <MAIN> <LPAR> <RPAR> <LCHAVES> 
-   
-VarDeclSeq()
-SeqCmd()
-
-<RCHAVES>
-
-}
-
-void VarDeclSeq() : {} {
-  ( <VAR> Tipo() <ID> <PVIRG> )*
-}
-
-
-void Tipo() : {} {
-( <FLOAT> | <BOOL> | <VOID> )
-}
-
-void SeqCmd() : {} {// SEQCOMANDOS -> SEQCOMANDOS COMANDO | vazio -> tem o loop no inicio
-
-   SeqComandos_linha()// eliminando
-}
-
-void SeqComandos_linha() : {} {
-
-   ( Comando() )*
-
-}
-
-void Comando() : {}
+Prog Bela() :
+{ Prog p; Main m; ArrayList<Fun> funs; }
 {
-  (
-      <ID> ( 
-        <ATRIB> (
-          <READINPUT> <LPAR> <RPAR> <PVIRG>
-          | Exp() <PVIRG>
-        )
-      | 
-        <LPAR> [ ExpList() ] <RPAR> <PVIRG>
-      )
-    | <IF> Exp() <THEN> <LCHAVES> SeqCmd() <RCHAVES> <PVIRG>
-    | <WHILE> Exp() <LCHAVES> SeqCmd() <RCHAVES> <PVIRG>
-    | <RETURN> Exp() <PVIRG>
-    | <PRINT> Exp() <PVIRG>
-  )
+    m = Main()
+    funs = Func_Linha()
+    <EOF>
+    { return new Prog(m, new ArrayList<>(funs)); }
 }
 
-
-void Exp() : {} {
-  ( <LPAR> Exp() Op() Exp() <RPAR>
-  | Fator()
-  )
-}
-
-
-void Fator() : {} {
-  (
-      <ID> [ <LPAR> [ExpList()] <RPAR> ]
-    | <NUM>
-    | <TRUE>
-    | <FALSE>
-  )
-}
-
-
-void Op() : {} {
-  (
-      <SUM>
-    | <SUB>
-    | <MULT>
-    | <DIV>
-    | <AND>
-    | <OR>
-    | <LESS>
-    | <GREATER>
-    | <COMP>
-  )
-}
-
-
-// LISTAEXP -> EXP | LISTAEXP "," EXP
-
-void ExpList() : {} { // * elimina, transforma em uma sequencia iterativa
-  Exp() ( <VIRG> Exp() )*
-}
-
-
-//FUNC -> FUNC "fun" TIPO TOKEN_id "(" LISTAARG? ")" "{" VARDECL SEQCOMANDOS "}"
-//"fun" TIPO TOKEN_id "(" LISTAARG? ")" "{" VARDECL SEQCOMANDOS "}"
-
-void Func() : {} { // recursão no inicio
-  
-    <FUN> Tipo() <ID> <LPAR> [ ListaArg() ] <RPAR> <LCHAVES>
-      VarDeclSeq()
-      SeqCmd()
+// talvez seja <VOID> antes de <MAIN>
+Main Main() :
+{ ArrayList<VarDecl> vars; ArrayList<Comando> coms; }
+{
+    <MAIN> <LPAR> <RPAR> <LCHAVES>
+      vars = VarDeclSeq()
+      coms = SeqCmd()
     <RCHAVES>
-  
+    { return new Main(new ArrayList<>(vars), new ArrayList<>(coms)); }
 }
 
-void Func_Linha() : {} {
-  (Func())*
+ArrayList<VarDecl> VarDeclSeq() :
+{ ArrayList<VarDecl> list = new ArrayList<>(); String type; Token id; }
+{
+    ( <VAR> type = Tipo() id = <ID> <PVIRG>
+      { list.add(new VarDecl(type, id.image)); }
+    )*
+    { return list; }
+}
+
+
+String Tipo() :
+{ Token t; }
+{
+    t = <FLOAT> { return t.image; }
+  | t = <BOOL>  { return t.image; }
+  | t = <VOID>  { return t.image; }
+}
+
+ArrayList<Comando> SeqCmd() :
+{ ArrayList<Comando> cmds = new ArrayList<>(); Comando c; }
+{
+    ( c = Comando() { cmds.add(c); } )*
+    { return cmds; }
+}
+
+
+//esse aqui vai ter que olhar, é o que mais tava dando erro
+Comando Comando() :
+{ 
+    Token id; 
+    Token comandoToken; 
+    Exp e; 
+    List<Exp> args; 
+    List<Comando> blk; 
+}
+{
+    (
+      id = <ID>
+      (
+        <ATRIB>
+        (
+          comandoToken = <READINPUT> <LPAR> <RPAR> <PVIRG>
+          { return new CReadInput(comandoToken.beginLine, id.image); }
+        |
+          e = Exp() comandoToken = <PVIRG>
+          { return new CAtribuicao(comandoToken.beginLine, id.image, e); }
+        )
+      |
+        comandoToken = <LPAR>
+          args = ExpList()
+        <RPAR> <PVIRG>
+        { return new CChamadaFun(comandoToken.beginLine, id.image, new ArrayList<>(args)); }
+        |
+        comandoToken = <LPAR>
+          { args = new ArrayList<>(); }
+        <RPAR> <PVIRG>
+        { return new CChamadaFun(comandoToken.beginLine, id.image, new ArrayList<>(args)); }
+      )
+    |
+      comandoToken = <IF> 
+      e = Exp() 
+      <THEN> 
+      <LCHAVES> blk = SeqCmd() <RCHAVES> <PVIRG>
+      { return new CIf(comandoToken.beginLine, e, new ArrayList<>(blk)); }
+    |
+      comandoToken = <WHILE> 
+      e = Exp() 
+      <LCHAVES> blk = SeqCmd() <RCHAVES> <PVIRG>
+      { return new CWhile(comandoToken.beginLine, e, new ArrayList<>(blk)); }
+    |
+      comandoToken = <RETURN> 
+      e = Exp() <PVIRG>
+      { return new CReturn(comandoToken.beginLine, e); }
+    |
+      comandoToken = <PRINT> 
+      e = Exp() <PVIRG>
+      { return new CPrint(comandoToken.beginLine, e); }
+    )
 
 }
 
-// LISTAARG -> TIPO TOKEN_id | LISTAARG "," TIPO TOKEN_id
 
-void ListaArg() : {} {
-  Tipo() <ID> ( <VIRG> Tipo() <ID> )*
-} // mesmo do ExpList
+
+Exp Exp() :
+{ Exp e1, e2; Token op; }
+{
+    <LPAR>
+      e1 = Exp()
+      op = Op()
+      e2 = Exp()
+    <RPAR>
+    { return new EOpExp(op.image, e1, e2); }
+  |
+    { return Fator(); }
+}
+
+ArrayList<Exp> ExpList() :
+{ ArrayList<Exp> list = new ArrayList<>(); Exp e; }
+{
+      e = Exp() { list.add(e); }
+    ( <VIRG> e = Exp() { list.add(e); } )*
+    { return list; }
+}
+
+
+Exp Fator() :
+{ Token id, num; ArrayList<Exp> args; }
+{
+    (
+      id = <ID>
+      (
+        <LPAR>
+          args = ExpList()
+        <RPAR>
+        { return new EChamadaFun(id.image, new ArrayList<>(args)); }
+      |
+        { return new EVar(id.image); }
+      )
+    |
+      num = <NUM>         { return new EFloat(Float.parseFloat(num.image)); }
+    |
+      <TRUE>              { return new ETrue(); }
+    |
+      <FALSE>             { return new EFalse(); }
+    )
+}
+
+Token Op() :
+{ Token t; }
+{
+    ( t = <SUM> | t = <SUB> | t = <MULT> | t = <DIV>
+    | t = <AND> | t = <OR> | t = <LESS>
+    | t = <GREATER> | t = <COMP> ) { return t; }
+}
+
+
+Fun Func() :
+{ Token id; String retType; ArrayList<ParamFormalFun> params; ArrayList<VarDecl> vars; ArrayList<Comando> body; }
+{
+    <FUN>
+    retType = Tipo()
+    id = <ID>
+    <LPAR> params = ListaArg() <RPAR>
+    <LCHAVES>
+      vars = VarDeclSeq()
+      body = SeqCmd()
+    <RCHAVES>
+    { return new Fun(id.image, new ArrayList<>(params), retType,
+                      new ArrayList<>(vars), new ArrayList<>(body)); }
+}
+
+ArrayList<Fun> Func_Linha() :
+{ ArrayList<Fun> funs = new ArrayList<>(); Fun f; }
+{
+    ( f = Func() { funs.add(f); } )*
+    { return funs; }
+}
+
+ArrayList<ParamFormalFun> ListaArg() :
+{ ArrayList<ParamFormalFun> list = new ArrayList<>(); String type; Token id; }
+{
+    ( type = Tipo() id = <ID>
+      { list.add(new ParamFormalFun(type, id.image)); }
+      ( <VIRG> type = Tipo() id = <ID>
+        { list.add(new ParamFormalFun(type, id.image)); }
+      )*
+    )?
+    { return list; }
+}
