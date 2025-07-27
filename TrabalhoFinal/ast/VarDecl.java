@@ -8,4 +8,8 @@ public class VarDecl {
       this.type = type;
       this.var = var;
    }
+
+   // public String toJava() {
+   // return var + " " + var + ";";
+   // }
 }

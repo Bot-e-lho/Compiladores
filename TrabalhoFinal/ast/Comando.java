@@ -1,4 +1,4 @@
 package ast;
 
-
-public class Comando{}
+public class Comando {
+}

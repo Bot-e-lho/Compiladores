@@ -1,4 +1,5 @@
 package ast;
 
-
-public class Exp{}
+public abstract class Exp {
+    public abstract String toJava();
+}

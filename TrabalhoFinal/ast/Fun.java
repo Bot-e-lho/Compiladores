@@ -17,4 +17,5 @@ public class Fun {
 		this.vars = vars;
 		this.body = body;
 	}
+
 }
