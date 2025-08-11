@@ -1,6 +1,8 @@
 package ast;
 
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class CChamadaFun extends Comando {
 	public int linha;
@@ -13,15 +15,12 @@ public class CChamadaFun extends Comando {
 		this.args = args;
 	}
 
-	// @Override
-	public String toJava() {
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < args.size(); i++) {
-			sb.append(args.get(i).toJava());
-			if (i < args.size() - 1)
-				sb.append(", ");
-		}
-		return fun + "(" + sb.toString() + ")";
-	}
+	@Override
+    public String toJava(Map<String,String> env, String indent) {
+        String params = args.stream()
+                            .map(e -> e.toJava(env))
+                            .collect(Collectors.joining(", "));
+        return indent + fun + "(" + params + ");\n";
+    }
 
 }

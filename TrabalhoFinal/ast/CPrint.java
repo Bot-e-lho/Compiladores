@@ -1,6 +1,6 @@
 package ast;
 
-import java.util.ArrayList;
+import java.util.Map;
 
 public class CPrint extends Comando {
 	public int linha;
@@ -12,9 +12,9 @@ public class CPrint extends Comando {
 
 	}
 
-	// @Override
-	public String toJava() {
-		return "System.out.println(" + exp.toJava() + ");\n";
-	}
+	@Override
+    public String toJava(Map<String,String> env, String indent) {
+        return indent + "System.out.println(" + exp.toJava(env) + ");\n";
+    }
 
 }

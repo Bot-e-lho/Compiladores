@@ -1,5 +1,7 @@
 package ast;
 
+import java.util.Map;
+
 public class EFalse extends Exp {
 
 	public EFalse() {
@@ -8,7 +10,7 @@ public class EFalse extends Exp {
 	}
 
 	@Override
-	public String toJava() {
+	public String toJava(Map<String,String> env) {
 		return "false";
 	}
 }

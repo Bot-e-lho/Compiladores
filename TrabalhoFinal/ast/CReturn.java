@@ -1,6 +1,6 @@
 package ast;
 
-import java.util.ArrayList;
+import java.util.Map;
 
 public class CReturn extends Comando {
 	public int linha;
@@ -12,9 +12,9 @@ public class CReturn extends Comando {
 
 	}
 
-	// @Override
-	public String toJava() {
-		return "return " + exp.toJava() + ";\n";
-	}
+	@Override
+    public String toJava(Map<String,String> env, String indent) {
+        return indent + "return " + exp.toJava(env) + ";\n";
+    }
 
 }

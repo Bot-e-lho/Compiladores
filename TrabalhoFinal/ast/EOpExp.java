@@ -1,5 +1,7 @@
 package ast;
 
+import java.util.Map;
+
 public class EOpExp extends Exp {
 	public String op;
 	public Exp arg1;
@@ -13,8 +15,10 @@ public class EOpExp extends Exp {
 	}
 
 	@Override
-	public String toJava() {
-		return "(" + arg1.toJava() + " " + op + " " + arg2.toJava() + ")";
-	}
+	public String toJava(Map<String,String> env) {
+        String left = arg1.toJava(env);
+        String right = arg2.toJava(env);
+        return "(" + left + " " + op + " " + right + ")";
+    }
 
 }

@@ -1,0 +1,5 @@
+main() {
+  var float x;
+  x = readInput();
+  printLn(x);
+}

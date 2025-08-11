@@ -1,6 +1,8 @@
 package ast;
 
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class EChamadaFun extends Exp {
 	public String fun;
@@ -12,14 +14,9 @@ public class EChamadaFun extends Exp {
 	}
 
 	@Override
-	public String toJava() {
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < args.size(); i++) {
-			sb.append(args.get(i).toJava());
-			if (i < args.size() - 1)
-				sb.append(", ");
-		}
-		return fun + "(" + sb.toString() + ")";
-	}
+    public String toJava(Map<String,String> env) {
+        String params = args.stream().map(e -> e.toJava(env)).collect(Collectors.joining(", "));
+        return fun + "(" + params + ")";
+    }
 
 }
