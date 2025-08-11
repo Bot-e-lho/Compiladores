@@ -1,0 +1,15 @@
+main() {
+     var float rd;
+     var bool flag;
+     flag = true;
+
+     rd = readInput();
+
+     while flag {
+          if (rd < 10.0) then {
+               flag = false;
+          };
+          rd = readInput();
+          printLn (rd);
+     };
+}

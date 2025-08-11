@@ -1,0 +1,18 @@
+main() {
+    var float n;
+    var float sum;
+    var float rd;
+    n = 5.0;
+    sum = 0.0;
+    rd = 0.0;
+    while (n > 0.0) {
+        rd = readInput();
+        sum = soma(sum, rd);
+        n = (n - 1.0);
+    };
+    printLn(sum);
+}
+
+fun float soma( float a, float b ){
+    return (a + b);
+}

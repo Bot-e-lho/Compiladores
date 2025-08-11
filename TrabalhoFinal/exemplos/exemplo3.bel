@@ -1,0 +1,39 @@
+main(){
+     var float a;
+     var float b;
+     var float n;
+     var bool flag;
+
+     a = readInput();
+     b = readInput();
+
+     flag = true;
+
+     while flag {
+          n = readInput();
+          flag = calculadora(n, a, b);
+     };
+}
+
+fun bool calculadora( float n, float a, float b ){
+     var float res;
+     if ( n == 1 ) then {
+          res = (a + b);
+          printLn(res); 
+          return true;
+     };
+     if ( n == 2 ) then {
+          res = (a - b);
+          printLn res; 
+          return true;};
+     if ( n == 3 ) then {
+          res = (a * b);
+          printLn(res); 
+          return true;};
+     if ( n == 4 ) then {
+          res = (a / b);
+          printLn(res); 
+          return true;
+          };
+     return false;
+}
